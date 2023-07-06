@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 from pdf.elements import Author, AuthorAffiliations
 from pdf.utils.string_utils import remove_parents, strip_seq, strip_prefix, \
     is_h_tag
-from readability import Document
 
 
 class Parser(ABC):
@@ -50,10 +49,6 @@ class PublisherParser(Parser, ABC):
                 and canonical_link.get("href")
                 and domain in canonical_link.get("href")
         )
-
-    def readable(self):
-        doc = Document(str(self.soup))
-        return BeautifulSoup(doc.summary()).text
 
     def domain_in_meta_og_url(self, domain):
         meta_og_url = self.soup.find("meta",
