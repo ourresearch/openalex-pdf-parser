@@ -1,4 +1,6 @@
-from flask import jsonify, request
+from urllib.parse import quote
+
+from flask import jsonify, request, make_response
 
 from app import app
 from exceptions import APIError
@@ -16,7 +18,7 @@ def home():
     )
 
 
-@app.route('/parse-pdf')
+@app.route('/parse')
 def parse_pdf():
     doi = request.args.get("doi")
     pdf_c = PDFController(doi)
@@ -32,6 +34,18 @@ def parse_pdf():
         },
     }
     return jsonify(response)
+
+@app.route('/view')
+def view_pdf():
+    doi = request.args.get("doi")
+    pdf_c = PDFController(doi)
+    response = make_response(pdf_c.pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = \
+        'inline; filename=%s.pdf' % f'{quote(doi, safe="")}.pdf'
+    return response
+
+
 
 @app.errorhandler(APIError)
 def handle_exception(err):
