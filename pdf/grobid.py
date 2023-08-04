@@ -111,7 +111,7 @@ class GrobidParser(Parser):
         soup = self.get_grobid_soup()
         body = None
         if body_tag := soup.select_one('body'):
-            body = body_tag.text
+            body = str(body_tag)
         authors = []
         author_tags = soup.select('sourceDesc author')
         universal_affs = []
