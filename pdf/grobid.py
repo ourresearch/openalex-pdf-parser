@@ -146,4 +146,5 @@ class GrobidParser(Parser):
         return {'authors': authors,
                 'abstract': self.cleanup_text(abstract) if abstract else None,
                 'fulltext': self.cleanup_text(body) if body else None,
-                'references': refs}
+                'references': refs,
+                'raw': str(soup)}
