@@ -1,4 +1,7 @@
+import base64
+import gzip
 import re
+import zlib
 from io import BytesIO
 
 from bs4 import BeautifulSoup
@@ -147,4 +150,4 @@ class GrobidParser(Parser):
                 'abstract': self.cleanup_text(abstract) if abstract else None,
                 'fulltext': self.cleanup_text(body) if body else None,
                 'references': refs,
-                'raw': str(soup)}
+                'raw': base64.encodebytes(zlib.compress(str(soup).encode())).decode()}
