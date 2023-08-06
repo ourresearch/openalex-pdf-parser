@@ -114,7 +114,8 @@ class GrobidParser(Parser):
         body = None
         if body_tag := soup.select_one('body text'):
             body_tag = copy.copy(body_tag)
-            body_tag.select_one('back').decompose()
+            if back_tag := body_tag.select_one('back'):
+                back_tag.decompose()
             body = str(body_tag)
         authors = []
         author_tags = soup.select('sourceDesc author')
