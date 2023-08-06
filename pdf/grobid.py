@@ -1,4 +1,5 @@
 import base64
+import copy
 import gzip
 from io import BytesIO
 
@@ -111,7 +112,9 @@ class GrobidParser(Parser):
     def parse(self):
         soup = self.get_grobid_soup()
         body = None
-        if body_tag := soup.select_one('body'):
+        if body_tag := soup.select_one('body text'):
+            body_tag = copy.copy(body_tag)
+            body_tag.select_one('back').decompose()
             body = str(body_tag)
         authors = []
         author_tags = soup.select('sourceDesc author')
@@ -144,8 +147,13 @@ class GrobidParser(Parser):
             'div[type=references] listbibl biblstruct')
         refs = [self.make_ref_dict(tag) for tag in ref_tags]
         refs = [ref for ref in refs if ref['doi'] or len([val for val in ref.values() if val]) > 1]
-        return {'authors': authors,
+        d = {'authors': authors,
                 'abstract': self.cleanup_text(abstract) if abstract else None,
                 'fulltext': self.cleanup_text(body) if body else None,
                 'references': refs,
                 'raw': base64.encodebytes(gzip.compress(str(soup).encode())).decode()}
+        others = soup.select('div[type]:not([type=references])')
+        for tag in others:
+            _type = tag.get('type')
+            d[_type] = str(tag)
+        return d
