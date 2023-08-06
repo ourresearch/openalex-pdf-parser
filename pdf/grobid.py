@@ -151,10 +151,10 @@ class GrobidParser(Parser):
         d = {'authors': authors,
                 'abstract': self.cleanup_text(abstract) if abstract else None,
                 'fulltext': self.cleanup_text(body) if body else None,
-                'references': refs,
-                'raw': base64.encodebytes(gzip.compress(str(soup).encode())).decode()}
+                'references': refs}
         others = soup.select('div[type]:not([type=references])')
         for tag in others:
             _type = tag.get('type')
             d[_type] = str(tag)
+        d['raw'] = base64.encodebytes(gzip.compress(str(soup).encode())).decode()
         return d
