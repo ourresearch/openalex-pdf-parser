@@ -49,7 +49,7 @@ def parse_pdf():
 @require_api_key
 def view_pdf():
     doi = request.args.get("doi")
-    pdf_c = PDFController(doi)
+    pdf_c = PDFController(doi, force_pdf=True)
     response = make_response(pdf_c.pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = \

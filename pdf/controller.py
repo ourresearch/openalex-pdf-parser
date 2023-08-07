@@ -24,8 +24,11 @@ def doi_to_xml_key(doi):
 
 class PDFController:
 
-    def __init__(self, doi):
+    def __init__(self, doi, force_pdf=False):
         self.doi = normalize_doi(doi)
+        if force_pdf:
+            self.pdf = self.get_pdf_contents()
+            return
         self.cached_resp = self.try_get_cached_grobid()
         self.pdf = None
         if self.cached_resp:
