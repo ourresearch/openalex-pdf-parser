@@ -24,11 +24,14 @@ class GrobidParser(Parser):
 
     # BASE_URL = 'https://kermitt2-grobid.hf.space/'
 
-    def __init__(self, pdf_contents):
+    def __init__(self, pdf_contents=None, cached_resp=None):
         base_api_url = GrobidParser.BASE_URL if GrobidParser.BASE_URL.endswith(
             '/api') else urljoin(GrobidParser.BASE_URL, 'api')
         self.client = Client(base_url=base_api_url, timeout=30)
+        if pdf_contents is not None and cached_resp is not None:
+            raise ValueError("Either pdf_contents or cached_resp must be specified.")
         self.pdf_contents = pdf_contents
+        self.cached_resp = cached_resp
 
     @staticmethod
     def no_authors_output():
@@ -44,18 +47,21 @@ class GrobidParser(Parser):
 
     @retry(stop=stop_after_attempt(5), wait=wait_fixed(3))
     def get_grobid_soup(self):
-        form = ProcessForm(
-            segment_sentences="1",
-            include_raw_citations="1",
-            include_raw_affiliations="1",
-            input_=File(file_name="contents.pdf",
-                        payload=BytesIO(self.pdf_contents),
-                        mime_type="application/pdf"),
-        )
-        r = process_fulltext_document.sync_detailed(client=self.client,
-                                                    multipart_data=form)
-        soup = BeautifulSoup(r.content, parser='lxml', features='lxml')
-
+        if self.cached_resp:
+            body = self.cached_resp
+        else:
+            form = ProcessForm(
+                segment_sentences="1",
+                include_raw_citations="1",
+                include_raw_affiliations="1",
+                input_=File(file_name="contents.pdf",
+                            payload=BytesIO(self.pdf_contents),
+                            mime_type="application/pdf"),
+            )
+            r = process_fulltext_document.sync_detailed(client=self.client,
+                                                        multipart_data=form)
+            body = r.content
+        soup = BeautifulSoup(body, parser='lxml', features='lxml')
         if body_tag := soup.select_one('body'):
             if 'HTTP ERROR 503' in body_tag.text:
                 raise Exception('503 error from GROBID')
