@@ -29,7 +29,8 @@ class GrobidParser(Parser):
             '/api') else urljoin(GrobidParser.BASE_URL, 'api')
         self.client = Client(base_url=base_api_url, timeout=30)
         if pdf_contents is not None and cached_resp is not None:
-            raise ValueError("Either pdf_contents or cached_resp must be specified.")
+            raise ValueError(
+                "Either pdf_contents or cached_resp must be specified.")
         self.pdf_contents = pdf_contents
         self.cached_resp = cached_resp
 
@@ -46,7 +47,7 @@ class GrobidParser(Parser):
         return fulltext
 
     @retry(stop=stop_after_attempt(5), wait=wait_fixed(3))
-    def get_grobid_soup(self):
+    async def get_grobid_soup(self):
         if self.cached_resp:
             body = self.cached_resp
         else:
@@ -58,8 +59,9 @@ class GrobidParser(Parser):
                             payload=BytesIO(self.pdf_contents),
                             mime_type="application/pdf"),
             )
-            r = process_fulltext_document.sync_detailed(client=self.client,
-                                                        multipart_data=form)
+            r = await process_fulltext_document.asyncio_detailed(
+                client=self.client,
+                multipart_data=form)
             body = r.content
         soup = BeautifulSoup(body, parser='lxml', features='lxml')
         if body_tag := soup.select_one('body'):
@@ -115,8 +117,8 @@ class GrobidParser(Parser):
             d['raw'] = raw_tag.text.strip()
         return d
 
-    def parse(self):
-        soup = self.get_grobid_soup()
+    async def parse(self):
+        soup = await self.get_grobid_soup()
         body = None
         if body_tag := soup.select_one('body text'):
             body_tag = copy.copy(body_tag)
@@ -153,14 +155,16 @@ class GrobidParser(Parser):
         ref_tags = soup.select(
             'div[type=references] listbibl biblstruct')
         refs = [self.make_ref_dict(tag) for tag in ref_tags]
-        refs = [ref for ref in refs if ref['doi'] or len([val for val in ref.values() if val]) > 1]
+        refs = [ref for ref in refs if
+                ref['doi'] or len([val for val in ref.values() if val]) > 1]
         d = {'authors': authors,
-                'abstract': self.cleanup_text(abstract) if abstract else None,
-                'fulltext': self.cleanup_text(body) if body else None,
-                'references': refs}
+             'abstract': self.cleanup_text(abstract) if abstract else None,
+             'fulltext': self.cleanup_text(body) if body else None,
+             'references': refs}
         others = soup.select('div[type]:not([type=references])')
         for tag in others:
             _type = tag.get('type')
             d[_type] = str(tag)
-        d['raw'] = base64.encodebytes(gzip.compress(str(soup).encode())).decode()
+        d['raw'] = base64.encodebytes(
+            gzip.compress(str(soup).encode())).decode()
         return d

@@ -1,4 +1,4 @@
-beautifulsoup4==4.11.1
+beautifulsoup4~=4.12.2
 black==22.3.0
 flask==2.1.2
 flask-cors==3.0.10
@@ -6,8 +6,13 @@ gunicorn==20.1.0
 requests==2.27.1
 lxml==4.9.2
 requests-cache==0.9.4
-boto3==1.18.8
+boto3~=1.26.76
 grobid-client==0.8.3
-botocore~=1.21.65
+botocore~=1.29.76
 pyalex~=0.7
 tenacity~=8.2.1
+aioboto3~=11.2.0
+aiobotocore~=2.5.0
+fastapi~=0.101.0
+uvicorn~=0.23.2
+starlette~=0.27.0

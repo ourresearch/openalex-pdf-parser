@@ -1,5 +1,7 @@
 class APIError(Exception):
     """All custom API Exceptions"""
+    code = None
+    description = None
 
     pass
 
