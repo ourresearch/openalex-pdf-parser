@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 
 from bs4 import BeautifulSoup
 
-from pdf.elements import Author, AuthorAffiliations
-from pdf.utils.string_utils import remove_parents, strip_seq, strip_prefix, \
+from parse.elements import Author, AuthorAffiliations
+from parse.utils.string_utils import remove_parents, strip_seq, strip_prefix, \
     is_h_tag
 
 

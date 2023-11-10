@@ -1,6 +1,7 @@
 import base64
 import copy
 import gzip
+import logging
 from io import BytesIO
 
 from bs4 import BeautifulSoup
@@ -9,12 +10,13 @@ import os
 from urllib.parse import urljoin
 
 from grobid_client.models import ProcessForm
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_fixed, before_sleep_log
 
 from grobid_client.types import File
 from grobid_client.api.pdf import process_fulltext_document
 
-from pdf.parser import Parser
+from log import logger
+from parse.parser import Parser
 
 
 class GrobidParser(Parser):
@@ -27,7 +29,7 @@ class GrobidParser(Parser):
     def __init__(self, pdf_contents=None, cached_resp=None):
         base_api_url = GrobidParser.BASE_URL if GrobidParser.BASE_URL.endswith(
             '/api') else urljoin(GrobidParser.BASE_URL, 'api')
-        self.client = Client(base_url=base_api_url, timeout=30)
+        self.client = Client(base_url=base_api_url, timeout=180)
         if pdf_contents is not None and cached_resp is not None:
             raise ValueError(
                 "Either pdf_contents or cached_resp must be specified.")
@@ -46,7 +48,10 @@ class GrobidParser(Parser):
             '')
         return fulltext
 
-    @retry(stop=stop_after_attempt(5), wait=wait_fixed(3))
+    @retry(stop=stop_after_attempt(5),
+           wait=wait_fixed(3),
+           reraise=True,
+           before_sleep=before_sleep_log(logger, log_level=logging.WARN))
     async def get_grobid_soup(self):
         if self.cached_resp:
             body = self.cached_resp

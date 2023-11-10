@@ -2,11 +2,15 @@ import io
 import os
 from urllib.parse import quote
 
+import uvicorn
 from fastapi import Request, Response, BackgroundTasks, FastAPI
 from fastapi.responses import PlainTextResponse, JSONResponse
 
 from exceptions import APIError
-from pdf.controller import PDFController
+from parse.pdf_controller import PDFController
+
+from parse.html_controller import HTMLController
+from parse.utils.pdf_util import PDFVersion
 
 app = FastAPI()
 
@@ -39,9 +43,28 @@ async def require_api_key(request: Request, call_next):
     return await call_next(request)
 
 
+@app.get('/parse-html')
+async def parse_html(doi):
+    html_c = HTMLController(doi)
+    await html_c.init()
+    msg = await html_c.parser.parse()
+    if doi.startswith('http'):
+        doi = doi.split('doi.org/')[1]
+    return {
+        "message": msg,
+        "metadata": {
+            "parser": html_c.parser.parser_name,
+            "doi": doi,
+            "doi_url": f"https://doi.org/{doi}",
+        },
+    }
+
+
 @app.get('/parse')
-async def parse_pdf(doi):
-    pdf_c = PDFController(doi)
+async def parse_pdf(doi, version: str | None = None):
+    if not version:
+        version = 'published'
+    pdf_c = PDFController(doi, PDFVersion.from_version_str(version))
     await pdf_c.init()
     msg = await pdf_c.parser.parse()
     if doi.startswith('http'):
@@ -68,5 +91,5 @@ async def view_pdf(doi, background_tasks: BackgroundTasks):
                     media_type='application/pdf')
 
 
-# if __name__ == "__main__":
-#     uvicorn.run('app:app', host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    uvicorn.run('app:app', host="0.0.0.0", port=5000, workers=1)
