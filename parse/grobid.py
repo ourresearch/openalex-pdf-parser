@@ -153,6 +153,7 @@ class GrobidParser(Parser):
         for author in authors:
             if not author['affiliations']:
                 author['affiliations'].extend(universal_affs)
+            author['affiliations'] = list(set(author['affiliations']))
         abstract = None
         if abstract_tag := soup.select_one('abstract'):
             abstract = abstract_tag.text

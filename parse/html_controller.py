@@ -8,8 +8,6 @@ import aioboto3
 import botocore
 import pdfkit
 from bs4 import BeautifulSoup
-# from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver import Chrome
 
 from parse.grobid import GrobidParser
 
@@ -21,16 +19,6 @@ session = aioboto3.Session()
 
 def doi_to_html_key(doi):
     return f'{quote(doi, safe="")}'
-
-
-# def make_chrome():
-#     opts = Options()
-#     opts.headless = False
-#     return Chrome(options=opts)
-
-#
-# CHROME = make_chrome()
-# CHROME_LOCK = Lock()
 
 
 class HTMLController:
@@ -52,12 +40,6 @@ class HTMLController:
     async def init(self):
         async with self.boto_session.client('s3') as s3:
             html = await self.get_html(s3)
-            # with CHROME_LOCK:
-            #     CHROME.get("data:text/html;charset=utf-8,{html_content}".format(
-            #         html_content=quote(html)))
-            #     output = CHROME.execute_cdp_cmd('Page.printToPDF', {})
-            #     pdf = base64.b64decode(output['data'])
-
             soup = BeautifulSoup(html, parser='lxml', features='lxml')
             cleaned = self.clean_html(soup)
             body = soup.find('body')
@@ -69,10 +51,6 @@ class HTMLController:
                                               'disable-external-links': '',
                                               'disable-internal-links': '',
                                               'log-level': 'info'})
-            # with open(f'./tmp/{quote(self.doi, safe="")}.pdf', 'wb') as f:
-            #     f.write(pdf)
-            # with open(f'./tmp/{quote(self.doi, safe="")}.html', 'wb') as f:
-            #     f.write(html)
             self.parser = GrobidParser(pdf_contents=pdf)
 
     async def get_html(self, s3):
