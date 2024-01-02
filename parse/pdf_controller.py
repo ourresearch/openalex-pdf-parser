@@ -10,8 +10,9 @@ import botocore
 from exceptions import S3FileNotFoundError
 from log import logger
 from parse.grobid import GrobidParser
-from parse.utils.const import PDF_ARCHIVE_BUCKET, GROBID_XML_BUCKET
-from parse.utils.pdf_util import PDFVersion
+from parse.utils.const import PDF_ARCHIVE_BUCKET, GROBID_XML_BUCKET, \
+    HTML_ARCHIVE_BUCKET
+from parse.utils.pdf_util import PDFVersion, landing_page_key
 from parse.utils.string_utils import normalize_doi
 
 S3_LOCK = Lock()
@@ -59,16 +60,25 @@ class PDFController:
             if e.response['Error']['Code'] in {"404", "NoSuchKey"}:
                 return None
 
-    async def get_pdf_contents(self, s3):
-        key = self.version.s3_key(self.doi)
+    async def try_get_pdf_contents(self, s3, bucket=PDF_ARCHIVE_BUCKET):
+        if bucket == PDF_ARCHIVE_BUCKET:
+            key = self.version.s3_key(self.doi)
+        elif bucket == HTML_ARCHIVE_BUCKET:
+            key = landing_page_key(self.doi)
+        else:
+            raise ValueError(f'Invalid S3 Bucket: {bucket}')
         try:
-            obj_details = await s3.get_object(Bucket=PDF_ARCHIVE_BUCKET, Key=key)
+            obj_details = await s3.get_object(Bucket=bucket, Key=key)
             body = await obj_details['Body'].read()
             if body[:3] == b'\x1f\x8b\x08':
                 body = gzip.decompress(body)
             return body
         except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] in {"404", "NoSuchKey"}:
-                raise S3FileNotFoundError()
-            else:
-                raise e
+            return None
+
+    async def get_pdf_contents(self, s3):
+        for bucket in [PDF_ARCHIVE_BUCKET, HTML_ARCHIVE_BUCKET]:
+            pdf_contents = await self.try_get_pdf_contents(s3, bucket)
+            if pdf_contents is not None:
+                return pdf_contents
+        raise S3FileNotFoundError()

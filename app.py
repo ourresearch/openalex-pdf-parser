@@ -44,16 +44,21 @@ async def require_api_key(request: Request, call_next):
 
 
 @app.get('/parse-html')
-async def parse_html(doi):
-    html_c = HTMLController(doi)
+async def parse_html(doi, include_raw: bool | None = False,
+                     try_stylize: bool | None = False):
+    if doi.startswith('http'):
+        doi = doi.split('doi.org/')[-1]
+    html_c = HTMLController(doi, try_stylize=try_stylize)
     await html_c.init()
     msg = await html_c.parser.parse()
-    if doi.startswith('http'):
-        doi = doi.split('doi.org/')[1]
+    if not include_raw:
+        del msg['raw']
     return {
         "message": msg,
         "metadata": {
             "parser": html_c.parser.parser_name,
+            "view_url": "https://parseland.herokuapp.com/view?doi=" + doi,
+            "html_parse_url": "https://parseland.herokuapp.com/parse-publisher?doi=" + doi,
             "doi": doi,
             "doi_url": f"https://doi.org/{doi}",
         },
@@ -61,7 +66,8 @@ async def parse_html(doi):
 
 
 @app.get('/parse')
-async def parse_pdf(doi, version: str | None = None):
+async def parse_pdf(doi, version: str | None = None,
+                    include_raw: bool | None = True):
     if not version:
         version = 'published'
     pdf_c = PDFController(doi, PDFVersion.from_version_str(version))
@@ -69,6 +75,8 @@ async def parse_pdf(doi, version: str | None = None):
     msg = await pdf_c.parser.parse()
     if doi.startswith('http'):
         doi = doi.split('doi.org/')[1]
+    if not include_raw:
+        del msg['raw']
     return {
         "message": msg,
         "metadata": {
@@ -92,4 +100,4 @@ async def view_pdf(doi, background_tasks: BackgroundTasks):
 
 
 if __name__ == "__main__":
-    uvicorn.run('app:app', host="0.0.0.0", port=5000, workers=1)
+    uvicorn.run('app:app', host="0.0.0.0", port=int(os.getenv('PORT')), workers=1)

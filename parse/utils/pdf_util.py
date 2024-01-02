@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from urllib.parse import quote
 
@@ -48,6 +49,17 @@ class PDFVersion(Enum):
             return True
         except botocore.exceptions.ClientError as e:
             return False
+
+
+def normalize_doi(doi):
+    if doi.startswith('http'):
+        return re.findall(r'doi.org/(.*?)$', doi)[0]
+    return doi
+
+
+def landing_page_key(doi: str):
+    doi = normalize_doi(doi)
+    return quote(doi.lower(), safe='')
 
 
 PDFVersion.s3 = boto3.client('s3', verify=False)
