@@ -13,4 +13,8 @@ fastapi~=0.101.0
 uvicorn~=0.23.2
 starlette~=0.27.0
 pdfkit~=1.0.0
-reportlab
+reportlab~=4.0.7
+boto3~=1.26.76
+botocore~=1.29.76
+httpx~=0.22.0
+Pillow~=10.1.0

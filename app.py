@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from urllib.parse import quote
 
@@ -88,8 +89,10 @@ async def parse_pdf(doi, version: str | None = None,
 
 
 @app.get('/view')
-async def view_pdf(doi, background_tasks: BackgroundTasks):
-    pdf_c = PDFController(doi, force_pdf=True)
+async def view_pdf(doi, background_tasks: BackgroundTasks,
+                   version: str | None = 'published'):
+    pdf_c = PDFController(doi, PDFVersion.from_version_str(version),
+                          force_pdf=True)
     await pdf_c.init()
     buffer = io.BytesIO(pdf_c.pdf)
     background_tasks.add_task(buffer.close)
@@ -100,4 +103,5 @@ async def view_pdf(doi, background_tasks: BackgroundTasks):
 
 
 if __name__ == "__main__":
-    uvicorn.run('app:app', host="0.0.0.0", port=int(os.getenv('PORT')), workers=1)
+    uvicorn.run('app:app', host="0.0.0.0", port=int(os.getenv('PORT')),
+                workers=4)

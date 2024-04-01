@@ -56,6 +56,7 @@ class GrobidParser(Parser):
         if self.cached_resp:
             body = self.cached_resp
         else:
+            print(self.pdf_contents)
             form = ProcessForm(
                 segment_sentences="1",
                 include_raw_citations="1",
@@ -68,11 +69,9 @@ class GrobidParser(Parser):
                 client=self.client,
                 multipart_data=form)
             body = r.content
-        soup = BeautifulSoup(body, parser='lxml', features='lxml')
-        if body_tag := soup.select_one('body'):
-            if 'HTTP ERROR 503' in body_tag.text:
-                raise Exception('503 error from GROBID')
-        return soup
+            if r.status_code >= 500:
+                raise Exception(f'{r.status_code} error from GROBID - {str(r.content)}')
+        return BeautifulSoup(body, parser='lxml', features='lxml')
 
     @staticmethod
     def make_ref_dict(ref_tag):
@@ -167,7 +166,7 @@ class GrobidParser(Parser):
              'abstract': self.cleanup_text(abstract) if abstract else None,
              'fulltext': self.cleanup_text(body) if body else None,
              'references': refs}
-        others = soup.select('div[type]:not([type=references])')
+        others = soup.select('div[type]:not([type=references]), note[type], front[type]')
         for tag in others:
             _type = tag.get('type')
             d[_type] = str(tag)
