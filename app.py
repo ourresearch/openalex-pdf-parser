@@ -6,6 +6,7 @@ from urllib.parse import quote
 import uvicorn
 from fastapi import Request, Response, BackgroundTasks, FastAPI
 from fastapi.responses import PlainTextResponse, JSONResponse
+from starlette.responses import StreamingResponse
 
 from exceptions import APIError
 from parse.pdf_controller import PDFController
@@ -100,6 +101,19 @@ async def view_pdf(doi, background_tasks: BackgroundTasks,
         'Content-Disposition': 'inline; filename=%s.pdf' % f'{quote(doi, safe="")}.pdf'}
     return Response(buffer.getvalue(), headers=headers,
                     media_type='application/pdf')
+
+
+@app.get('/download')
+async def download_pdf(doi, background_tasks: BackgroundTasks,
+                   version: str | None = 'published'):
+    pdf_c = PDFController(doi, PDFVersion.from_version_str(version),
+                          force_pdf=True)
+    await pdf_c.init()
+    buffer = io.BytesIO(pdf_c.pdf)
+    background_tasks.add_task(buffer.close)
+    response = StreamingResponse(buffer, media_type="application/pdf")
+    response.headers["Content-Disposition"] = f"attachment; filename={doi}.pdf"
+    return response
 
 
 if __name__ == "__main__":
