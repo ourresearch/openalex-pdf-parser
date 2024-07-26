@@ -143,12 +143,15 @@ class GrobidParser(Parser):
                     if label := aff_tag.find('label'):
                         label.decompose()
                     author['affiliations'].append(aff_tag.text.strip())
+                if orcid_tag := tag.select_one('idno[type="ORCID"]'):
+                    author['orcid'] = orcid_tag.text.strip()
                 authors.append(author)
             elif universal_aff_tag := tag.select_one(
                     'note[type=raw_affiliation]'):
                 if label := universal_aff_tag.find('label'):
                     label.decompose()
                 universal_affs.append(universal_aff_tag.text)
+
         for author in authors:
             if not author['affiliations']:
                 author['affiliations'].extend(universal_affs)
