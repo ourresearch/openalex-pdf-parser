@@ -2,6 +2,7 @@ import base64
 import copy
 import gzip
 import logging
+import re
 from io import BytesIO
 
 from bs4 import BeautifulSoup
@@ -56,7 +57,6 @@ class GrobidParser(Parser):
         if self.cached_resp:
             body = self.cached_resp
         else:
-            print(self.pdf_contents)
             form = ProcessForm(
                 segment_sentences="1",
                 include_raw_citations="1",
@@ -70,7 +70,8 @@ class GrobidParser(Parser):
                 multipart_data=form)
             body = r.content
             if r.status_code >= 500:
-                raise Exception(f'{r.status_code} error from GROBID - {str(r.content)}')
+                raise Exception(
+                    f'{r.status_code} error from GROBID - {str(r.content)}')
         return BeautifulSoup(body, parser='lxml', features='lxml')
 
     @staticmethod
@@ -157,6 +158,7 @@ class GrobidParser(Parser):
                 author['affiliations'].extend(universal_affs)
             author['affiliations'] = list(set(author['affiliations']))
         abstract = None
+
         if abstract_tag := soup.select_one('abstract'):
             abstract = abstract_tag.text
 
@@ -166,10 +168,14 @@ class GrobidParser(Parser):
         refs = [ref for ref in refs if
                 ref['doi'] or len([val for val in ref.values() if val]) > 1]
         d = {'authors': authors,
+             'all_orcids': re.findall(r'\d{4}-\d{4}-\d{4}-[\dX]{4}',
+                                      self.pdf_contents.decode(
+                                          errors='ignore')) if self.pdf_contents else [],
              'abstract': self.cleanup_text(abstract) if abstract else None,
              'fulltext': self.cleanup_text(body) if body else None,
              'references': refs}
-        others = soup.select('div[type]:not([type=references]), note[type], front[type]')
+        others = soup.select(
+            'div[type]:not([type=references]), note[type], front[type]')
         for tag in others:
             _type = tag.get('type')
             d[_type] = str(tag)
