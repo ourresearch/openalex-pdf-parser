@@ -21,11 +21,13 @@ session = aioboto3.Session()
 
 class PDFController:
 
-    def __init__(self, doi, version: PDFVersion, force_pdf=False):
+    def __init__(self, doi, version: PDFVersion, force_pdf=False,
+                 bypass_cache=False):
         self.doi = normalize_doi(doi)
         self.version = version
         self.force_pdf = force_pdf
         self.cached_resp = None
+        self.bypass_cache = bypass_cache
         self.parser = None
         self.pdf = None
         self.boto_session = aioboto3.Session(
@@ -37,7 +39,7 @@ class PDFController:
             if self.force_pdf:
                 self.pdf = await self.get_pdf_contents(s3)
                 return
-            self.cached_resp = await self.try_get_cached_grobid(s3)
+            self.cached_resp = await self.try_get_cached_grobid(s3) if not self.bypass_cache else None
             self.pdf = None
             if self.cached_resp:
                 self.parser = GrobidParser(cached_resp=self.cached_resp)

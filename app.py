@@ -69,10 +69,12 @@ async def parse_html(doi, include_raw: bool | None = False,
 
 @app.get('/parse')
 async def parse_pdf(doi, version: str | None = None,
-                    include_raw: bool | None = True):
+                    include_raw: bool | None = True,
+                    bypass_cache: bool | None = False):
     if not version:
         version = 'published'
-    pdf_c = PDFController(doi, PDFVersion.from_version_str(version))
+    pdf_c = PDFController(doi, PDFVersion.from_version_str(version),
+                          bypass_cache=bypass_cache)
     await pdf_c.init()
     msg = await pdf_c.parser.parse()
     if doi.startswith('http'):
